@@ -1,0 +1,126 @@
+# ==============================================================================
+# Furuta Pendulum (.gitignore)
+# Configured for MATLAB/Simulink, Python RL, Embedded Firmware (C/C++), CAD & OS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# MATLAB & Simulink
+# ------------------------------------------------------------------------------
+*.asv
+*.m~
+*.slx~
+*.autosave
+*.slxc
+slprj/
+sfprj/
+codegen/
+*.mex*
+*.dsw
+matlab.log
+m3irepo/
+
+# MATLAB App Designer / GUIDE backups
+*.bak
+
+# Simulink Test / Coverage reports
+*_coverage.html
+*_cov.html
+
+# ------------------------------------------------------------------------------
+# Python & Reinforcement Learning (Shadow Track)
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter & IPython
+.ipynb_checkpoints/
+
+# Pytest / Profiling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# TensorBoard & Wandb logs
+runs/
+wandb/
+checkpoints/
+
+# ------------------------------------------------------------------------------
+# Embedded Firmware & Compilers (C / C++ / PlatformIO / STM32Cube)
+# ------------------------------------------------------------------------------
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.d
+.pio/
+.pioenvs/
+.piolibdeps/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+CMakeScripts/
+Makefile
+*.ninja
+.ninja_*
+
+# ------------------------------------------------------------------------------
+# CAD & Mechanical Design Temporary Files (SolidWorks, Fusion 360, STEP/STL)
+# ------------------------------------------------------------------------------
+~$*
+*.tmp
+*.err
+*.swp
+*.$$$
+*.~*
+
+# ------------------------------------------------------------------------------
+# Operating System Artifacts
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# ------------------------------------------------------------------------------
+# IDE & Editor Configurations
+# ------------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
