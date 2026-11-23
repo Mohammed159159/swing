@@ -4,8 +4,8 @@ Here is a complete review of what we have built, an assessment of the architectu
 
 ## 1. Review of What Has Been Done So Far
 
-### A. First-Principles 3D Modeling & Code Generation (`control/model/`)
-* **[furuta_state_space.m](file:///d:/Projects/Mechatronics/swing/control/model/furuta_state_space.m) & [furuta_state_space.mlx](file:///d:/Projects/Mechatronics/swing/control/model/furuta_state_space.mlx):**
+### A. First-Principles 3D Modeling & Code Generation (`digital-twin/models/analytical/`)
+* **[furuta_state_space.m](file:///d:/Projects/Mechatronics/swing/digital-twin/models/analytical/furuta_state_space.m) & [furuta_state_space.mlx](file:///d:/Projects/Mechatronics/swing/digital-twin/models/analytical/furuta_state_space.mlx):**
   * **Modeling Assumptions (Section 4.1):** Explicitly states rigid links/ideal revolute joints, axisymmetric slender pendulum rod ($J_{1,\parallel}\approx 0$), linear viscous pivot damping ($b_0, b_1$), and linear DC motor dynamics ($L_a \approx 0$, rigid gearbox ratio $N$, rotor inertia $J_m$).
   * **Section 1 (3D Cartesian Kinematics & Lagrangian):** Defines 3D COM coordinates $(X_{\text{COM}}, Y_{\text{COM}}, Z_{\text{COM}})$ directly from the top-view geometry, differentiates via Symbolic Math Toolbox to capture the full 3D velocity squared $v^2$ (including radial sweep $l_1^2\sin^2\theta_1\,\dot{\theta}_0^2$), includes 3D transverse rod rotation $\frac{1}{2}J_1(\dot{\theta}_1^2 + \sin^2\theta_1\,\dot{\theta}_0^2)$, and forms $L = T - V$.
   * **Section 2 (Euler–Lagrange EOMs):** Derives the full 3D nonlinear equations, exposing the Coriolis torque $+\hat{J}_1\sin(2\theta_1)\dot{\theta}_0\dot{\theta}_1$ and centrifugal flinging torque $-\frac{1}{2}\hat{J}_1\sin(2\theta_1)\dot{\theta}_0^2$, while showing the $-m_1 L_0 l_1\sin\theta_1\,\dot{\theta}_0\dot{\theta}_1$ cancellation.
@@ -26,6 +26,15 @@ Here is a complete review of what we have built, an assessment of the architectu
 * **[extract_urdf_params.m](file:///d:/Projects/Mechatronics/swing/config/extract_urdf_params.m):** Standalone utility `cad = extract_urdf_params(urdf_path)` applying `<origin rpy>` inertia tensor rotation, the parallel-axis theorem for $I_0$, and joint-axis projection for $L_0, l_1, J_1$.
 * **[build_plant.m](file:///d:/Projects/Mechatronics/swing/config/build_plant.m):** Stateless function `plant = build_plant(params)` validating parameter bounds, computing `plant.derived` (`I0_hat`, `J1_hat`, `D`, `b_eff`), and building `plant.upright`, `plant.downward` (zero hardcoded matrices), and `plant.nonlinear` (`.rhs(x, Va)` for `ode45`, `.output(x, Va)`).
 * **[test_config.m](file:///d:/Projects/Mechatronics/swing/tests/test_config.m):** 11 automated unit tests checking parameter contracts, independent symbolic equivalence, $N^2 J_m$ scaling, eigenvalue signatures, sweep isolation, error guards, URDF extraction, finite-difference nonlinear-to-linear Jacobians, small-angle `ode45` vs. `lsim`, and 3D centrifugal flinging.
+
+### C. Unified Digital Twin & Modular Simulation Layer (`digital-twin/` & `sim/`)
+* **Repository Architecture Refactor (Completed):**
+  * Unified all plant representations under `digital-twin/models/` (`analytical/`, `simscape/`, `urdf/`, `mujoco/`) and created `digital-twin/validation/` for model-vs-model fidelity verification (separating plant validation from controller evaluation in `control/evaluation/`).
+  * Created root `sim/` (`sim/runners/` and `sim/scenarios/`) and removed `control/controllers/open-loop/`.
+* **[startup.m](file:///d:/Projects/Mechatronics/swing/startup.m):** Root workspace/path initializer adding `config/`, `sim/{runners,scenarios}/`, `digital-twin/{models,validation}/`, `control/`, and `tests/` and populating `params` and `plant` without overwriting existing overrides.
+* **`sim/runners/` (`simulate_linear.m`, `simulate_nonlinear.m`, `simulate_simscape.m`):** Standardized runners returning `[res.t, res.x, res.y, res.u, res.meta]` in global coordinates $\mathbf{x} = [\theta_0, \dot{\theta}_0, \theta_1, \dot{\theta}_1]^T$, supporting open-loop profiles, closed-loop controllers (`@(t, x)`), $\pm V_{\max}$ saturation, and non-destructive `Simulink.SimulationInput` Simscape execution.
+* **[test_sim_runners.m](file:///d:/Projects/Mechatronics/swing/tests/test_sim_runners.m):** Automated unit tests covering `startup.m`, linear/nonlinear small-angle agreement, 3D undamped energy conservation, closed-loop saturation, input guards, and live Simscape `simlog` extraction.
+* **`sim/scenarios/` & `digital-twin/validation/` (`open_loop_scenarios.m`, `compute_validation_metrics.m`, `open_loop_validation.m`/`.mlx`, `tests/test_validation.m`):** 9-scenario open-loop validation catalog (5 downward + 4 upright mirror scenarios), quantitative RMSE/NRMSE + logarithmic decrement + upright topple growth-rate metrics, report-ready Live Script with guarded Simscape hook, and automated test suite.
 
 ---
 
@@ -48,14 +57,14 @@ Here is a complete review of what we have built, an assessment of the architectu
 * [ ] **4.1.2 (Hardware/CAD follow-up):** Replace `% TODO` baselines in `load_parameters.m` once final URDF is exported and experimental SysID tests (log decrement $b_1$, compound pendulum $J_1$, bifilar $I_0$, locked-rotor $R_m, k_t, k_b$) are performed; document the ID procedure.
 * [x] **4.1.3 Linearization & state-space representation** (completed for both upright $\theta_1 = 0$ and downward $\theta_1 = \pi$ in `furuta_state_space.mlx` and `build_plant.m`).
 * [ ] **4.1.4 Complete Simscape Multibody plant & open-loop consistency validation:**
-  * [ ] Swap final URDF/meshes into `digital-twin/simscape/` and ensure joint damping ($b_0, b_1$) and voltage-to-torque motor dynamics ($N, R_m, k_t, k_b, J_m$) are wired and parameterized from `params`.
-  * [ ] Create `startup.m` and wire Simscape `PreLoadFcn` (tracked in [deferred_backlog.md](file:///C:/Users/Mohammed%20Hany/.gemini/antigravity/brain/7e5cbcb7-e275-4960-8862-bcd11eb80214/deferred_backlog.md)).
-  * [ ] Create open-loop validation script/Live Script (`control/controllers/open-loop/`) overlaying **Linear (`lsim`) vs. Nonlinear Analytical (`ode45`) vs. Simscape Multibody** for (1) free downward decay $\theta_1(0) = \pi + 10^\circ$ and (2) open-loop voltage steps $V_a = 1\text{ V}, 2\text{ V}$, verifying $\text{NRMSE} < 3\%$.
+  * [x] Create root `startup.m` and modular simulation runners (`sim/runners/simulate_linear.m`, `simulate_nonlinear.m`, `simulate_simscape.m`) with unit tests (`tests/test_sim_runners.m`).
+  * [x] Create `sim/scenarios/open_loop_scenarios.m` (5 downward + 4 upright mirror scenarios) and `digital-twin/validation/` (`compute_validation_metrics.m`, `open_loop_validation.m`/`.mlx`, `tests/test_validation.m`) overlaying **Linear (`lsim`) vs. Nonlinear Analytical (`ode45`)** with guarded **Simscape Multibody** hook ($\text{NRMSE} < 3\%$ gate).
+  * [ ] Swap final URDF/meshes into `digital-twin/models/simscape/`, wire `PreLoadFcn`, joint damping ($b_0, b_1$), and voltage-to-torque motor dynamics ($N, R_m, k_t, k_b, J_m$) parameterized from `params` (tracked in [deferred_backlog.md](file:///d:/Projects/Mechatronics/swing/docs/logs/deferred_backlog.md)).
 
 ### Phase 2 (Week 9 Gate — Sections 4.2, 4.3 & Section 8.1)
 * [x] **4.2.1 (Backend computation):** Upright and downward state matrices and eigenvalue computation (`plant.eig_upright`, `plant.eig_downward`).
-* [ ] **4.2.1 & 4.2.2 Open-Loop Stability, Controllability & Observability Live Script:**
-  * [ ] Dedicated Live Script in `control/evaluation/stability/` presenting upright vs. downward eigenvalues, pole-zero maps (`pzmap`), physical interpretation of all 4 modes, controllability matrix $\mathcal{C} = \text{ctrb}(A_{\text{up}}, B_{\text{up}})$ ($\text{rank} = 4$, singular value conditioning), and observability matrix $\mathcal{O} = \text{obsv}(A_{\text{up}}, C_{\text{full}})$ ($\text{rank} = 4$ from position encoders alone).
+* [x] **4.2.1 & 4.2.2 Open-Loop Stability, Controllability, Observability & Non-Minimum Phase Zero Analysis:**
+  * [x] Dedicated analyzer (`control/evaluation/stability/analyze_open_loop_stability.m`), pedagogical Live Script (`open_loop_stability.m`/`.mlx`), and unit tests (`tests/test_stability.m`) presenting upright vs. downward eigenvalues, zoomed pole–zero maps & non-minimum phase zeros (`tzero`, `minreal`), Kalman controllability & observability rank proofs (`ctrb`, `obsv` across encoder subsets), unit-voltage step responses (`step`), and open-loop Bode plots (`bode`).
 * [ ] **4.3 Controller Design, Tuning & Simulation (3 Stabilizing + 1 Swing-Up):**
   * [ ] **`config/compute_gains.m`:** Central gain synthesizer consuming `(plant, params)` and returning `gains` (`K_pid`, `K_pp`, `K_lqr`, `k_E`).
   * [ ] **4.3.1 PID Controller (`control/controllers/classical/pid/`):** PID on $\theta_1$ with derivative filter $N_f/(1 + N_f/s)$ + arm-centering PD on $\theta_0$ (to stabilize the $\lambda = 0$ cyclic mode).
@@ -74,24 +83,23 @@ Even before your final CAD URDF or physical hardware is ready, **100% of the cod
 
 ```mermaid
 flowchart TD
-    S1["Step 1: Workspace & Open-Loop Validation<br/>• startup.m<br/>• control/controllers/open-loop/open_loop_validation.mlx<br/>(Linear lsim vs Nonlinear ode45 + Simscape hook)"] --> S2["Step 2: Section 4.2 Open-Loop Stability Live Script<br/>• control/evaluation/stability/open_loop_stability.mlx<br/>(eig, pzmap, ctrb rank/SVD, obsv rank)"]
-    S2 --> S3["Step 3: Section 4.3 Controller Synthesis & compute_gains.m<br/>• config/compute_gains.m<br/>• PID, Pole Placement, LQR, Astrom-Furuta Swing-Up<br/>(tested on plant.nonlinear.rhs)"]
+    S1A["Step 1A (Done): Workspace & Simulation Runners<br/>• startup.m<br/>• sim/runners/{simulate_linear, simulate_nonlinear, simulate_simscape}.m<br/>• tests/test_sim_runners.m"] --> S1B["Step 1B (Done): Scenarios & Open-Loop Validation<br/>• sim/scenarios/open_loop_scenarios.m (Downward + Upright)<br/>• digital-twin/validation/compute_validation_metrics.m<br/>• digital-twin/validation/open_loop_validation.mlx"]
+    S1B --> S2["Step 2 (Done): Section 4.2 Open-Loop Stability Live Script<br/>• control/evaluation/stability/analyze_open_loop_stability.m<br/>• control/evaluation/stability/open_loop_stability.mlx<br/>(eig, poles/zeros, ctrb/obsv, step, Bode)"]
+    S2 --> S3["Step 3 (Next): Section 4.3 Controller Synthesis & compute_gains.m<br/>• config/compute_gains.m<br/>• PID, Pole Placement, LQR, Astrom-Furuta Swing-Up<br/>(tested via sim/runners/simulate_nonlinear.m)"]
     S3 --> S4["Step 4: Section 4.2.3 Closed-Loop Stability & Margins<br/>• Closed-loop poles, Bode GM/PM, disturbance comparison"]
-    S1 & S4 --> S5["Step 5: Swap Final URDF & Wire Simscape<br/>• Run extract_urdf_params on final URDF<br/>• Wire Simscape motor/damping & re-run all scripts"]
+    S1B & S4 --> S5["Step 5: Swap Final URDF & Wire Simscape<br/>• Run extract_urdf_params on final URDF<br/>• Wire Simscape motor/damping/PreLoadFcn & re-run validation"]
 ```
 
-### Step 1: Close Phase 1 Analytical Open-Loop Validation + `startup.m` (Immediate)
-1. **Create root `startup.m`** (from [deferred_backlog.md](file:///C:/Users/Mohammed%20Hany/.gemini/antigravity/brain/7e5cbcb7-e275-4960-8862-bcd11eb80214/deferred_backlog.md)) adding `config/` and `control/` paths and loading `params` and `plant`.
-2. **Create `control/controllers/open-loop/open_loop_validation.m` (`.mlx`):**
-   * **Test A (Small- vs. Large-Angle Free Hanging Decay, $V_a = 0$):** Overlay `lsim`/`initial` of `plant.downward.sys` against `ode45` of `plant.nonlinear.rhs` for $\theta_1(0) = \pi + 5^\circ$ (near-exact match, NRMSE $< 1\%$) vs. $\theta_1(0) = \pi + 60^\circ$ (shows nonlinear period elongation).
-   * **Test B (Open-Loop Voltage Pulse/Step, $V_a = 1\text{ V}, 2\text{ V}$):** Overlay linear downward model vs. 3D nonlinear ODE (demonstrating the 3D centrifugal flinging term when $\dot{\theta}_0$ builds up).
-   * Include a clean Simscape comparison block ready to overlay `sim('robot_compatible')` trajectories and compute NRMSE ($< 3\%$) as soon as the Simscape joint actuators/damping are wired.
+### Step 1A: Workspace Bootstrapping & Modular Simulation Runners (Completed)
+1. **Root `startup.m`:** Adds `config/`, `sim/{runners,scenarios}/`, `digital-twin/{models,validation}/`, `control/`, and `tests/` to the MATLAB path (no `restoredefaultpath`) and initializes `params` and `plant` safely.
+2. **`sim/runners/`:** Standardized `simulate_linear.m`, `simulate_nonlinear.m`, and `simulate_simscape.m` sharing the global-coordinate result struct `res.{t, x, y, u, meta}` and verified by `tests/test_sim_runners.m`.
 
-### Step 2: Build the Section 4.2 Open-Loop Stability Live Script (`control/evaluation/stability/`)
-Create `control/evaluation/stability/open_loop_stability.m` (`.mlx`) covering the first two bullets of Section 4.2:
-* Call `params = load_parameters(); plant = build_plant(params);`.
-* Display and plot (`pzmap`) the 4 poles of `plant.sys_upright` and `plant.sys_downward`, explaining the physical role of each pole ($\lambda = 0$ rigid-body arm rotation, $+9.60\text{ rad/s}$ inverted topple mode, $-159.6\text{ rad/s}$ electrical/viscous motor-arm decay, and $-0.43 \pm 9.31j\text{ rad/s}$ hanging pendulum oscillation).
-* Compute $\mathcal{C} = \text{ctrb}(plant.A\_full, plant.B\_full)$ and $\mathcal{O} = \text{obsv}(plant.A\_full, plant.C\_full)$, verify $\text{rank}(\mathcal{C}) = 4$ and $\text{rank}(\mathcal{O}) = 4$, and inspect $\text{svd}(\mathcal{C})$ to discuss actuator authority across $\theta_0$ and $\theta_1$.
+### Step 1B: Open-Loop Scenarios & Model Validation Live Script (Completed)
+1. **`sim/scenarios/open_loop_scenarios.m`:** 9-scenario catalog covering both equilibria (`decay_small`, `decay_large`, `step_small`, `step_1V`, `step_2V` + upright mirror suite `upright_fall_small`, `upright_fall_large`, `upright_step_small`, `upright_step_1V`).
+2. **`digital-twin/validation/compute_validation_metrics.m` & `open_loop_validation.m`/`.mlx`:** Verifies small-angle $< 1\%$ NRMSE at both equilibria, downward log-decrement vs. eigenvalues, upright RHP topple rate and $B_4 < 0$ sign flip, large-angle period elongation, 3D centrifugal flinging, and a guarded `ENABLE_SIMSCAPE` hook ($\text{NRMSE} < 3\%$). Verified by `tests/test_validation.m`.
+
+### Step 2: Build the Section 4.2 Open-Loop Stability Live Script (Completed)
+Implemented `control/evaluation/stability/analyze_open_loop_stability.m`, `open_loop_stability.m`/`.mlx`, and `tests/test_stability.m` covering upright vs. downward eigenvalues, open-loop poles & zeros (`tzero`, `minreal`, non-minimum phase RHP zero check), Kalman controllability & observability rank proofs (`ctrb`, `obsv` across encoder subsets), unit-voltage step responses (`step`), and open-loop Bode diagrams (`bode`).
 
 ### Step 3: Build `config/compute_gains.m` & the Four Section 4.3 Controllers
 1. **`config/compute_gains.m` (`gains = compute_gains(plant, params)`):**
@@ -108,4 +116,4 @@ Extend the stability Live Script (or add `closed_loop_stability.mlx`) to report:
 
 ---
 
-Would you like to start with **Step 1** (the open-loop validation Live Script + `startup.m`) or **Step 2** (the Section 4.2 Open-Loop Stability, Controllability & Observability Live Script)?
+Step 1 and Step 2 are complete. Ready to proceed to **Step 3** (`config/compute_gains.m` + PID, Pole Placement, LQR, and Åström–Furuta Swing-Up)!

@@ -11,11 +11,11 @@ function params = load_parameters()
     params.g = 9.81;        % [m/s^2] Gravitational acceleration
 
     %% Mechanical Geometry & Inertias (CAD / Experimental SysID)
-    params.I0 = 2.0e-4;     % TODO [kg*m^2] Rotary arm + hub CAD inertia about vertical Z-axis
-    params.L0 = 0.12;       % TODO [m]      Rotary arm pivot radius (arm length)
-    params.m1 = 0.0458;     % TODO [kg]     Pendulum link mass (baseline from robot.urdf)
-    params.l1 = 0.085;      % TODO [m]      Pivot-to-pendulum center-of-mass distance
-    params.J1 = 1.1e-4;     % TODO [kg*m^2] Pendulum inertia about its COM (pivot axis)
+    params.I0 = 4.8053914e-05; % TODO [kg*m^2] Rotary arm + hub CAD inertia about vertical Z-axis (from robot.urdf)
+    params.L0 = 0.0475;         % TODO [m]      Rotary arm pivot radius (temporary 4 mm offset in robot.urdf)
+    params.m1 = 0.0458;        % TODO [kg]     Pendulum link mass (from robot.urdf)
+    params.l1 = 0.057178115;   % TODO [m]      Pivot-to-pendulum center-of-mass distance (from robot.urdf)
+    params.J1 = 6.9795432e-05; % TODO [kg*m^2] Pendulum inertia about its COM (from robot.urdf)
     params.Jm = 0.0;        % TODO [kg*m^2] Motor rotor inertia (motor-shaft referred)
 
     %% Joint Viscous Friction

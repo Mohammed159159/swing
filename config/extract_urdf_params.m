@@ -1,6 +1,6 @@
 function cad = extract_urdf_params(urdf_path)
 %EXTRACT_URDF_PARAMS Extract Furuta mechanical scalars (I0, L0, m1, l1, J1) from URDF.
-%   cad = EXTRACT_URDF_PARAMS() parses digital-twin/simscape/robot.urdf relative
+%   cad = EXTRACT_URDF_PARAMS() parses digital-twin/models/simscape/robot.urdf relative
 %   to the repository root.
 %   cad = EXTRACT_URDF_PARAMS(urdf_path) parses the specified URDF file, rotates
 %   inertial tensors by inertial <origin rpy>, applies the parallel-axis theorem
@@ -9,7 +9,7 @@ function cad = extract_urdf_params(urdf_path)
 
     if nargin < 1 || isempty(urdf_path)
         repoRoot  = fileparts(fileparts(mfilename('fullpath')));
-        urdf_path = fullfile(repoRoot, 'digital-twin', 'simscape', 'robot.urdf');
+        urdf_path = fullfile(repoRoot, 'digital-twin', 'models', 'simscape', 'robot.urdf');
     end
     if ~isfile(urdf_path)
         error('Furuta:FileNotFound', 'URDF file not found: %s', urdf_path);

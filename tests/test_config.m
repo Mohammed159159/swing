@@ -149,19 +149,25 @@ classdef test_config < matlab.unittest.TestCase
             testCase.verifyError(@() build_plant(badRes), 'Furuta:InvalidParameters');
 
             badSing = params;
-            badSing.I0 = 1e-22;
-            badSing.J1 = 1e-22;
+            badSing.m1 = 1.0;
+            badSing.L0 = 1.0;
+            badSing.l1 = 1.0;
+            badSing.I0 = 1e-30;
+            badSing.J1 = 1e-30;
             badSing.Jm = 0;
             testCase.verifyError(@() build_plant(badSing), 'Furuta:SingularInertiaMatrix');
         end
 
         function test_extract_urdf_params(testCase)
-            urdfPath = fullfile(testCase.RepoRoot, 'digital-twin', 'simscape', 'robot.urdf');
+            urdfPath = fullfile(testCase.RepoRoot, 'digital-twin', 'models', 'simscape', 'robot.urdf');
 
             cad = testCase.verifyWarning( ...
                 @() extract_urdf_params(urdfPath), 'Furuta:SmallArmLength');
+            cadDefault = testCase.verifyWarning( ...
+                @() extract_urdf_params(), 'Furuta:SmallArmLength');
+            testCase.verifyEqual(cadDefault, cad);
 
-            % Hand-computed check against digital-twin/simscape/robot.urdf
+            % Hand-computed check against digital-twin/models/simscape/robot.urdf
             m_arm = 0.053299999999999979339;
             com_arm_xy2 = (-0.012730712527184277066)^2 + (8.0648459397815786313e-05)^2;
             I0_expected = 3.9415181227059578367e-05 + m_arm * com_arm_xy2;
