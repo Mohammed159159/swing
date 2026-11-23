@@ -14,14 +14,15 @@ function lqr_gains = lqr_design(plant, params, opts)
 %   Name-Value Options:
 %     StateMax   - 4x1 max acceptable deviations [th0; dth0; th1; dth1]
 %                  (default: [0.6; 6.0; 0.15; 4.0] rad, rad/s)
-%     ControlMax - Effective actuator weighting voltage [V] (default: 2.5 V,
-%                  keeps 10 deg upright recovery unsaturated < 12 V)
+%     ControlMax - Effective actuator weighting voltage [V] (default: 0.7 V,
+%                  keeps 10 deg recovery unsaturated and avoids high-frequency
+%                  chattering against Simscape DC motor inductance/dynamics)
 
     arguments
         plant (1,1) struct
         params (1,1) struct
         opts.StateMax (4,1) double {mustBePositive} = [0.6; 6.0; 0.15; 4.0]
-        opts.ControlMax (1,1) double {mustBePositive} = 2.5
+        opts.ControlMax (1,1) double {mustBePositive} = 0.7
     end
 
     A = plant.A_full;
