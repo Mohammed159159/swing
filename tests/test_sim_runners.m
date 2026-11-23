@@ -19,13 +19,15 @@ classdef test_sim_runners < matlab.unittest.TestCase
     methods (Test)
         function test_startup_paths_and_workspace(testCase)
             % Run startup inside an isolated helper workspace
-            [wsVars, paramsOut, plantOut] = test_sim_runners.runStartupIsolated();
+            [wsVars, paramsOut, plantOut, gainsOut] = test_sim_runners.runStartupIsolated();
             testCase.verifyTrue(ismember('params', wsVars));
             testCase.verifyTrue(ismember('plant',  wsVars));
-            testCase.verifyEqual(numel(wsVars), 2, ...
+            testCase.verifyTrue(ismember('gains',  wsVars));
+            testCase.verifyEqual(numel(wsVars), 3, ...
                 'startup.m should not leave temporary loop variables in the workspace.');
             testCase.verifyEqual(paramsOut, load_parameters());
             testCase.verifyEqual(plantOut.A_full, build_plant(paramsOut).A_full, 'AbsTol', 1e-15);
+            testCase.verifyTrue(isfield(gainsOut, 'pid') && isfield(gainsOut, 'pp') && isfield(gainsOut, 'lqr'));
 
             % Verify pre-existing params override is preserved (not overwritten)
             customParams = load_parameters();
@@ -184,11 +186,12 @@ classdef test_sim_runners < matlab.unittest.TestCase
     end
 
     methods (Static, Access = private)
-        function [wsVars, paramsOut, plantOut] = runStartupIsolated()
+        function [wsVars, paramsOut, plantOut, gainsOut] = runStartupIsolated()
             startup;
             wsVars    = who();
             paramsOut = params;
             plantOut  = plant;
+            gainsOut  = gains;
         end
 
         function preservedParams = runStartupWithExistingParams(params)
